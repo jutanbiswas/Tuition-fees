@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#173b32">
+<title>Pragati Academy Fee Manager</title>
+<style>
+:root{--green:#173b32;--green2:#245747;--bg:#f4f7f5;--card:#fff;--text:#17231f;--muted:#6d7b75;--line:#e4ebe7;--red:#b63c3c;--amber:#98610a;--blue:#285d9c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text)}
+header{background:var(--green);color:white;padding:18px 16px 20px;position:sticky;top:0;z-index:5}
+.brand{font-weight:800;font-size:20px;letter-spacing:.2px}.sub{font-size:12px;opacity:.78;margin-top:3px}
+main{max-width:760px;margin:auto;padding:15px 14px 92px}
+.tabs{display:flex;gap:7px;overflow:auto;margin:0 0 15px;padding-bottom:3px}
+.tab{border:1px solid var(--line);background:white;border-radius:20px;padding:9px 14px;font-weight:650;white-space:nowrap;color:var(--green)}
+.tab.active{background:var(--green);color:white;border-color:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{background:white;border:1px solid var(--line);border-radius:15px;padding:14px}
+.stat small{color:var(--muted);font-size:12px}.stat strong{display:block;font-size:23px;margin-top:5px}
+.card{background:white;border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}
+h2{font-size:17px;margin:0 0 12px}h3{font-size:15px;margin:0 0 9px}
+.muted{color:var(--muted);font-size:12px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+button,.btn{border:0;border-radius:11px;padding:11px 14px;background:var(--green);color:white;font-weight:700;font-size:14px;cursor:pointer}
+button.secondary{background:#edf3ef;color:var(--green)}button.danger{background:#fff0f0;color:var(--red)}button.small{padding:7px 10px;font-size:12px}
+input,select{width:100%;padding:12px;border:1px solid #d7e1db;border-radius:10px;background:white;font:inherit;margin:5px 0 12px;color:var(--text)}
+label{font-size:12px;color:var(--muted);font-weight:650}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.student{padding:12px 0;border-bottom:1px solid var(--line)}.student:last-child{border:0}
+.name{font-weight:750}.meta{font-size:12px;color:var(--muted);margin-top:3px}
+.amount{font-weight:800;font-variant-numeric:tabular-nums}
+.pill{font-size:11px;font-weight:750;padding:5px 8px;border-radius:20px;white-space:nowrap}
+.paid{background:#e7f5ec;color:#21653c}.due{background:#fff4df;color:#8a5b09}.overdue{background:#ffeded;color:#a52f2f}.partial{background:#eaf1fc;color:#285d9c}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.empty{text-align:center;color:var(--muted);padding:22px 8px;font-size:13px}
+.hidden{display:none!important}
+.notice{font-size:12px;line-height:1.5;background:#eef5f1;border-radius:12px;padding:11px;color:#38564a;margin-bottom:12px}
+footer{font-size:11px;color:var(--muted);text-align:center;padding:12px}
+.modal{position:fixed;inset:0;background:#0007;z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.modalbox{background:white;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:600px;max-height:90vh;overflow:auto}
+@media(min-width:600px){.modal{align-items:center}.modalbox{border-radius:20px}}
+</style>
+</head>
+<body>
+<header><div class="brand">PRAGATI ACADEMY</div><div class="sub">Fee Manager · INR ₹</div></header>
+<main>
+ <div class="tabs">
+  <button class="tab active" data-tab="dashboard">Dashboard</button>
+  <button class="tab" data-tab="students">Students</button>
+  <button class="tab" data-tab="fees">Fee records</button>
+  <button class="tab" data-tab="backup">Backup</button>
+ </div>
+ <section id="dashboard">
+  <div class="notice" id="monthNotice">Monthly fees are generated automatically when you open the app. Each student's own due day is used.</div>
+  <div class="grid">
+   <div class="stat"><small>Active students</small><strong id="sCount">0</strong></div>
+   <div class="stat"><small>Fees billed this month</small><strong id="billed">₹0</strong></div>
+   <div class="stat"><small>Collected this month</small><strong id="collected">₹0</strong></div>
+   <div class="stat"><small>Outstanding total</small><strong id="outstanding">₹0</strong></div>
+  </div>
+  <div class="card" style="margin-top:12px"><div class="row"><h2>Needs attention</h2><span class="muted" id="dueCount">0 pending</span></div><div id="attention"></div></div>
+  <div class="card"><div class="row"><h2>Recent payments</h2><button class="secondary small" onclick="switchTab('fees')">View all</button></div><div id="recent"></div></div>
+ </section>
+ <section id="students" class="hidden">
+  <div class="row" style="margin-bottom:12px"><div><h2 style="margin:0">Students</h2><div class="muted">Set a separate monthly fee and due day for each student.</div></div><button onclick="openStudent()">+ Add</button></div>
+  <input id="studentSearch" placeholder="Search student..." oninput="renderStudents()">
+  <div class="card" id="studentList"></div>
+ </section>
+ <section id="fees" class="hidden">
+  <div class="row"><div><h2 style="margin:0">Fee records</h2><div class="muted">Monthly invoices and payment status.</div></div></div>
+  <div class="formgrid"><div><label>Month</label><input type="month" id="filterMonth" onchange="renderFees()"></div><div><label>Status</label><select id="filterStatus" onchange="renderFees()"><option value="all">All records</option><option value="pending">Pending / partial</option><option value="paid">Paid</option><option value="overdue">Overdue</option></select></div></div>
+  <div class="card" id="feeList"></div>
+ </section>
+ <section id="backup" class="hidden">
+  <div class="card"><h2>Data backup</h2><p class="muted">Your records are saved in this browser on this device. Export a backup regularly, especially before changing or resetting your phone.</p>
+  <button onclick="exportBackup()">Download backup (JSON)</button>
+  <label style="display:block;margin-top:18px">Restore from a previous backup</label><input type="file" id="restoreFile" accept="application/json">
+  <button class="secondary" onclick="restoreBackup()">Restore backup</button>
+  </div>
+  <div class="card"><h2>Important</h2><p class="muted">This first version works offline after opening. Automatic monthly invoices are created when the app is opened and catches up for missed months. It does not send background notifications or WhatsApp messages. Keep a backup because browser data can be cleared.</p></div>
+  <div class="card"><h2>Danger zone</h2><button class="danger" onclick="clearAll()">Delete all app data</button></div>
+ </section>
+</main>
+<footer>Pragati Academy Fee Manager · Local device storage</footer>
+
+<div class="modal hidden" id="modal"><div class="modalbox"><div class="row"><h2 id="modalTitle">Add student</h2><button class="secondary small" onclick="closeModal()">Close</button></div><div id="modalBody"></div></div></div>
+<script>
+const KEY='pragati_fee_manager_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"students":[],"invoices":[],"payments":[]}');
+function save(){localStorage.setItem(KEY,JSON.stringify(db));}
+function rupee(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});}
+function ym(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function monthLabel(s){let [y,m]=s.split('-').map(Number);return new Date(y,m-1,1).toLocaleString('en-IN',{month:'long',year:'numeric'});}
+function dueDate(month,day){let [y,m]=month.split('-').map(Number);let last=new Date(y,m,0).getDate();return `${month}-${String(Math.min(day,last)).padStart(2,'0')}`;}
+function dateOnly(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function monthDiff(a,b){let [ay,am]=a.split('-').map(Number),[by,bm]=b.split('-').map(Number);return (by-ay)*12+bm-am;}
+function generateInvoices(){
+ let now=ym(),created=0;
+ db.students.filter(s=>s.active).forEach(s=>{
+  let start=s.startMonth||now, count=monthDiff(start,now);
+  for(let i=0;i<=count;i++){
+   let [y,m]=start.split('-').map(Number);let d=new Date(y,m-1+i,1);let month=ym(d);
+   if(!db.invoices.some(x=>x.studentId===s.id&&x.month===month)){
+    db.invoices.push({id:crypto.randomUUID(),studentId:s.id,month,amount:Number(s.fee),due:dueDate(month,Number(s.dueDay)),createdAt:new Date().toISOString()});created++;
+   }
+  }
+ });
+ if(created){save();document.getElementById('monthNotice').textContent=`Automatically generated ${created} monthly fee record${created===1?'':'s'} for the current and any missed months.`;}
+}
+function studentName(id){return db.students.find(s=>s.id===id)?.name||'Deleted student';}
+function paidFor(inv){return db.payments.filter(p=>p.invoiceId===inv.id).reduce((a,p)=>a+Number(p.amount),0);}
+function balance(inv){return Math.max(0,Number(inv.amount)-paidFor(inv));}
+function status(inv){let b=balance(inv);if(b<=0)return 'paid';return dateOnly()>inv.due?'overdue':paidFor(inv)>0?'partial':'pending';}
+function statusText(s){return ({paid:'Paid',pending:'Pending',overdue:'Overdue',partial:'Part-paid'})[s];}
+function switchTab(tab){document.querySelectorAll('section').forEach(x=>x.classList.add('hidden'));document.getElementById(tab).classList.remove('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));if(tab==='students')renderStudents();if(tab==='fees')renderFees();if(tab==='dashboard')renderDashboard();}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+function renderDashboard(){
+ let m=ym(),invs=db.invoices.filter(i=>i.month===m),billed=invs.reduce((a,i)=>a+Number(i.amount),0),collected=invs.reduce((a,i)=>a+paidFor(i),0),out=db.invoices.reduce((a,i)=>a+balance(i),0);
+ document.getElementById('sCount').textContent=db.students.filter(s=>s.active).length;
+ document.getElementById('billed').textContent=rupee(billed);document.getElementById('collected').textContent=rupee(collected);document.getElementById('outstanding').textContent=rupee(out);
+ let pending=db.invoices.filter(i=>balance(i)>0).sort((a,b)=>a.due.localeCompare(b.due));
+ document.getElementById('dueCount').textContent=pending.length+' pending';
+ document.getElementById('attention').innerHTML=pending.length?pending.slice(0,8).map(i=>`<div class="student row"><div><div class="name">${esc(studentName(i.studentId))}</div><div class="meta">${monthLabel(i.month)} · Due ${i.due}</div></div><div style="text-align:right"><div class="amount">${rupee(balance(i))}</div><span class="pill ${status(i)}">${statusText(status(i))}</span></div></div>`).join(''):'<div class="empty">All fee records are settled. Great work!</div>';
+ let ps=[...db.payments].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+ document.getElementById('recent').innerHTML=ps.length?ps.map(p=>{let inv=db.invoices.find(i=>i.id===p.invoiceId);return `<div class="student row"><div><div class="name">${esc(studentName(inv?.studentId))}</div><div class="meta">${p.date} · ${inv?monthLabel(inv.month):'Invoice unavailable'}</div></div><b>${rupee(p.amount)}</b></div>`}).join(''):'<div class="empty">No payments recorded yet.</div>';
+}
+function renderStudents(){
+ let q=(document.getElementById('studentSearch')?.value||'').toLowerCase();
+ let arr=db.students.filter(s=>s.name.toLowerCase().includes(q)||String(s.className||'').toLowerCase().includes(q));
+ document.getElementById('studentList').innerHTML=arr.length?arr.map(s=>`<div class="student"><div class="row"><div><div class="name">${esc(s.name)} ${s.active?'':'(Inactive)'}</div><div class="meta">${esc(s.className||'Class not set')} · ${esc(s.phone||'No phone')}<br>${rupee(s.fee)}/month · Due day ${s.dueDay}</div></div><div class="actions"><button class="secondary small" onclick="openStudent('${s.id}')">Edit</button><button class="secondary small" onclick="toggleStudent('${s.id}')">${s.active?'Pause':'Activate'}</button></div></div></div>`).join(''):'<div class="empty">No students yet. Tap “Add” to create your first student.</div>';
+}
+function openStudent(id=''){
+ let s=db.students.find(x=>x.id===id)||{name:'',className:'',phone:'',fee:'',dueDay:5,active:true,startMonth:ym()};
+ document.getElementById('modalTitle').textContent=id?'Edit student':'Add student';
+ document.getElementById('modalBody').innerHTML=`<form id="studentForm" onsubmit="saveStudent(event,'${id}')">
+ <label>Student full name *</label><input name="name" required value="${attr(s.name)}" placeholder="e.g. Rahul Das">
+ <div class="formgrid"><div><label>Class / Batch</label><input name="className" value="${attr(s.className)}" placeholder="Class X"></div><div><label>Monthly fee (₹) *</label><input name="fee" type="number" min="1" step="1" required value="${attr(s.fee)}"></div></div>
+ <label>Parent / student phone</label><input name="phone" type="tel" value="${attr(s.phone)}" placeholder="10-digit mobile number">
+ <div class="formgrid"><div><label>Monthly due day</label><select name="dueDay">${Array.from({length:28},(_,i)=>i+1).map(n=>`<option ${Number(s.dueDay)===n?'selected':''} value="${n}">${n}${n===1?'st':n===2?'nd':n===3?'rd':'th'} of each month</option>`).join('')}<option value="30" ${Number(s.dueDay)===30?'selected':''}>Last day (up to 30)</option></select></div><div><label>Start billing from</label><input type="month" name="startMonth" required value="${attr(s.startMonth||ym())}"></div></div>
+ <button style="width:100%">Save student</button></form>`;
+ document.getElementById('modal').classList.remove('hidden');
+}
+function saveStudent(e,id){e.preventDefault();let f=new FormData(e.target),obj={name:f.get('name').trim(),className:f.get('className').trim(),phone:f.get('phone').trim(),fee:Number(f.get('fee')),dueDay:Number(f.get('dueDay')),startMonth:f.get('startMonth'),active:true};
+ if(id){let s=db.students.find(x=>x.id===id);Object.assign(s,obj);/* Existing invoices keep their original amounts and due dates. */}else db.students.push({id:crypto.randomUUID(),...obj});
+ save();generateInvoices();closeModal();renderStudents();renderDashboard();}
+function toggleStudent(id){let s=db.students.find(x=>x.id===id);s.active=!s.active;save();generateInvoices();renderStudents();renderDashboard();}
+function renderFees(){
+ let m=document.getElementById('filterMonth').value||ym(),f=document.getElementById('filterStatus').value;
+ let arr=db.invoices.filter(i=>i.month===m).sort((a,b)=>a.due.localeCompare(b.due));
+ if(f==='paid')arr=arr.filter(i=>status(i)==='paid');else if(f==='pending')arr=arr.filter(i=>balance(i)>0);else if(f==='overdue')arr=arr.filter(i=>status(i)==='overdue');
+ document.getElementById('feeList').innerHTML=arr.length?arr.map(i=>`<div class="student"><div class="row"><div><div class="name">${esc(studentName(i.studentId))}</div><div class="meta">${monthLabel(i.month)} · Due ${i.due}</div></div><div style="text-align:right"><div class="amount">${rupee(i.amount)}</div><span class="pill ${status(i)}">${statusText(status(i))}</span></div></div><div class="row" style="margin-top:7px"><span class="muted">Paid ${rupee(paidFor(i))} · Balance ${rupee(balance(i))}</span><div class="actions">${balance(i)>0?`<button class="small" onclick="recordPayment('${i.id}')">Record payment</button>`:''}<button class="secondary small" onclick="invoiceDetails('${i.id}')">Details</button></div></div></div>`).join(''):'<div class="empty">No fee records for this month and filter.</div>';
+}
+function recordPayment(id){let i=db.invoices.find(x=>x.id===id),bal=balance(i);document.getElementById('modalTitle').textContent='Record payment';document.getElementById('modalBody').innerHTML=`<div class="notice">${esc(studentName(i.studentId))} · ${monthLabel(i.month)}<br>Outstanding: <b>${rupee(bal)}</b></div><form onsubmit="savePayment(event,'${id}')"><label>Amount received (₹)</label><input name="amount" type="number" min="1" max="${bal}" step="0.01" required value="${bal}"><label>Payment date</label><input name="date" type="date" required value="${dateOnly()}"><label>Payment mode</label><select name="mode"><option>Cash</option><option>UPI</option><option>Bank transfer</option><option>Other</option></select><label>Note (optional)</label><input name="note" placeholder="Transaction reference / note"><button style="width:100%">Save payment</button></form>`;document.getElementById('modal').classList.remove('hidden');}
+function savePayment(e,id){e.preventDefault();let f=new FormData(e.target),i=db.invoices.find(x=>x.id===id),amt=Number(f.get('amount'));if(amt<=0||amt>balance(i)){alert('Enter an amount up to the outstanding balance.');return;}db.payments.push({id:crypto.randomUUID(),invoiceId:id,amount:amt,date:f.get('date'),mode:f.get('mode'),note:f.get('note')});save();closeModal();renderFees();renderDashboard();}
+function invoiceDetails(id){let i=db.invoices.find(x=>x.id===id),ps=db.payments.filter(p=>p.invoiceId===id);document.getElementById('modalTitle').textContent='Fee details';document.getElementById('modalBody').innerHTML=`<h3>${esc(studentName(i.studentId))}</h3><p class="muted">${monthLabel(i.month)} · Due ${i.due}</p><p>Fee: <b>${rupee(i.amount)}</b><br>Paid: <b>${rupee(paidFor(i))}</b><br>Balance: <b>${rupee(balance(i))}</b></p><h3>Payments</h3>${ps.length?ps.map(p=>`<div class="student row"><span>${p.date} · ${esc(p.mode)} ${p.note?'· '+esc(p.note):''}</span><b>${rupee(p.amount)}</b></div>`).join(''):'<div class="empty">No payments yet.</div>'}`;document.getElementById('modal').classList.remove('hidden');}
+function closeModal(){document.getElementById('modal').classList.add('hidden');}
+function exportBackup(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pragati-fee-backup-'+dateOnly()+'.json';a.click();URL.revokeObjectURL(a.href);}
+function restoreBackup(){let file=document.getElementById('restoreFile').files[0];if(!file){alert('Choose a backup JSON file first.');return;}let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!Array.isArray(x.students)||!Array.isArray(x.invoices)||!Array.isArray(x.payments))throw Error();if(!confirm('Restore this backup? Current app data will be replaced.'))return;db=x;save();generateInvoices();renderAll();alert('Backup restored.');}catch(e){alert('This backup file is not valid.');}};r.readAsText(file);}
+function clearAll(){if(confirm('Permanently delete all students, invoices and payments from this browser? Export a backup first if needed.')&&confirm('Are you absolutely sure?')){db={students:[],invoices:[],payments:[]};save();renderAll();}}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function attr(s){return esc(s).replace(/`/g,'&#96;');}
+function renderAll(){generateInvoices();renderDashboard();renderStudents();renderFees();}
+document.getElementById('filterMonth').value=ym();
+generateInvoices();renderAll();
+</script>
+</body></html>
